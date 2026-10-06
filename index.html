@@ -23,12 +23,16 @@
     .card{background:var(--card);border-radius:18px;padding:14px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.06)}
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .between{justify-content:space-between}
-    button,select,textarea,input{font:inherit}
+    button,input,textarea{font:inherit}
     button{border:0;border-radius:12px;padding:12px 14px;background:#e5e7eb;color:#111827;font-weight:700}
     button.primary{background:var(--accent);color:#fff}
     button.danger{background:#fee2e2;color:#991b1b}
     button.small{padding:8px 10px;font-size:13px}
-    .club-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+    input[type="number"],input[type="text"]{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;color:var(--text)}
+    input[type="number"]{width:90px}
+    input[type="text"]{flex:1;min-width:150px}
+    .club-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+    .club-tabs button{flex:0 0 auto;min-width:64px}
     .club-tabs button.active{background:#111827;color:white}
     .shot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
     .shot-grid button{min-height:62px}
@@ -50,12 +54,17 @@
     .hidden{display:none!important}
     .report{white-space:pre-wrap;background:#f9fafb;padding:12px;border-radius:12px;font-size:14px}
     .install-tip{font-size:13px;color:#374151;background:#eef2ff;border-radius:12px;padding:10px}
+    .club-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+    .club-item{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:6px;align-items:center}
+    .drag{color:var(--muted);font-weight:700}
+    .section-title{font-weight:700;margin-bottom:8px}
+    .quick-targets{display:flex;gap:6px;flex-wrap:wrap}
   </style>
 </head>
 <body>
 <div class="app">
   <h1>Golf Practice Coach</h1>
-  <div class="sub">100球の練習を、1球1タップで記録</div>
+  <div class="sub">球数もクラブも自由に設定して、1球1タップで記録</div>
 
   <div class="install-tip" id="installTip">
     iPhoneではSafariの共有ボタン →「ホーム画面に追加」でアプリのように使えます。
@@ -72,7 +81,27 @@
     </div>
 
     <div class="card">
-      <div class="club-tabs" id="clubTabs"></div>
+      <div class="section-title">目標球数</div>
+      <div class="row">
+        <input id="targetInput" type="number" min="1" max="999" step="1" inputmode="numeric" />
+        <span class="muted">球</span>
+      </div>
+      <div class="quick-targets" style="margin-top:8px">
+        <button class="small targetQuick" data-target="50">50</button>
+        <button class="small targetQuick" data-target="80">80</button>
+        <button class="small targetQuick" data-target="100">100</button>
+        <button class="small targetQuick" data-target="120">120</button>
+        <button class="small targetQuick" data-target="150">150</button>
+      </div>
+      <div class="muted" style="margin-top:8px;font-size:12px">途中で変更しても記録はそのまま残ります。</div>
+    </div>
+
+    <div class="card">
+      <div class="row between">
+        <strong>使用クラブ</strong>
+        <button class="small" id="openClubManagerBtn">クラブ設定</button>
+      </div>
+      <div class="club-tabs" id="clubTabs" style="margin-top:10px"></div>
       <div class="shot-grid">
         <button class="good" data-dir="左" data-contact="良">左・良</button>
         <button class="good" data-dir="中央" data-contact="良">中央・良</button>
@@ -91,6 +120,21 @@
       <div class="row" style="margin-top:10px">
         <button class="small" id="undoBtn">直前を取消</button>
         <button class="small" id="resetTodayBtn">今日をリセット</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="clubManager">
+      <div class="row between">
+        <strong>クラブ設定</strong>
+        <button class="small" id="closeClubManagerBtn">閉じる</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <input id="newClubInput" type="text" placeholder="例：5W、6I、SW、58°" />
+        <button id="addClubBtn" class="primary">追加</button>
+      </div>
+      <div class="club-list" id="clubList"></div>
+      <div class="muted" style="margin-top:8px;font-size:12px">
+        ↑↓で並び替えできます。記録済みのクラブを削除しても過去データは残ります。
       </div>
     </div>
 
@@ -140,13 +184,22 @@
 </div>
 
 <script>
-const clubs = ["AW","PW","7I","4UT","Driver"];
+const DEFAULT_CLUBS = ["AW","PW","7I","4UT","Driver"];
 let state = JSON.parse(localStorage.getItem("golfState") || "null") || {
   selectedClub:"7I", shots:[], memo:"", target:100
 };
+if(!state.target || state.target < 1) state.target = 100;
+
+let clubs = JSON.parse(localStorage.getItem("golfClubs") || "null") || DEFAULT_CLUBS.slice();
+if(!Array.isArray(clubs) || !clubs.length) clubs = DEFAULT_CLUBS.slice();
+if(!clubs.includes(state.selectedClub)) state.selectedClub = clubs[0];
+
 let history = JSON.parse(localStorage.getItem("golfHistory") || "[]");
 
-function save(){ localStorage.setItem("golfState", JSON.stringify(state)); }
+function save(){
+  localStorage.setItem("golfState", JSON.stringify(state));
+  localStorage.setItem("golfClubs", JSON.stringify(clubs));
+}
 function saveHistory(){ localStorage.setItem("golfHistory", JSON.stringify(history)); }
 
 function renderTabs(){
@@ -160,6 +213,7 @@ function renderTabs(){
 }
 
 function addShot(dir, contact, special){
+  if(!state.selectedClub){ alert("クラブを1つ追加してください"); return; }
   state.shots.push({
     ts:Date.now(), club:state.selectedClub,
     dir:dir||"", contact:contact||"", special:special||""
@@ -188,13 +242,23 @@ function clubStats(club){
 
 function pct(a,b){return b?Math.round(a/b*100):0}
 
+function getAllUsedClubs(){
+  const fromShots=[...new Set(state.shots.map(x=>x.club))];
+  return [...new Set([...clubs,...fromShots])];
+}
+
 function renderStats(){
   const el=document.getElementById("stats"); el.innerHTML="";
-  clubs.forEach(c=>{
+  const displayClubs=getAllUsedClubs();
+  if(!displayClubs.length){
+    el.innerHTML='<div class="muted" style="padding:12px 0">クラブを追加してください</div>';
+    return;
+  }
+  displayClubs.forEach(c=>{
     const s=clubStats(c);
     const d=document.createElement("div"); d.className="stat";
     d.innerHTML=`
-      <div><strong>${c}</strong> <span class="muted">${s.n}球</span></div><div></div>
+      <div><strong>${escapeHtml(c)}</strong> <span class="muted">${s.n}球</span></div><div></div>
       <div class="muted">中央率 / 良い当たり率</div><div>${pct(s.center,s.n)}% / ${pct(s.good,s.n)}%</div>
       <div class="muted">左 ${s.left}・右 ${s.right}・トップ ${s.top}・ダフリ ${s.fat}</div><div></div>`;
     el.appendChild(d);
@@ -209,12 +273,14 @@ function renderProgress(){
   document.getElementById("lastShot").textContent=last
     ? `直前：${last.club} ${last.special || (last.dir+"・"+last.contact)}`
     : "まだ記録はありません";
+  document.getElementById("targetInput").value=state.target;
 }
 
 function buildReport(){
   const date=new Date().toLocaleDateString("ja-JP");
-  let out=`${date} ゴルフ練習\n\n`;
-  clubs.forEach(c=>{
+  let out=`${date} ゴルフ練習\n`;
+  out+=`総球数 ${state.shots.length}球 / 目標 ${state.target}球\n\n`;
+  getAllUsedClubs().forEach(c=>{
     const s=clubStats(c);
     if(!s.n)return;
     out+=`${c} ${s.n}球\n`;
@@ -224,7 +290,7 @@ function buildReport(){
     out+="\n";
   });
   out+=`感覚メモ\n${state.memo || "なし"}\n\n`;
-  out+=`この記録を前回までの傾向と比較して、改善点を1つに絞り、次回100球の練習メニューを作ってください。`;
+  out+=`この記録を前回までの傾向と比較して、改善点を1つに絞り、次回の練習メニューを目標球数に合わせて作ってください。`;
   return out;
 }
 
@@ -235,20 +301,87 @@ function renderHistory(){
   if(!history.length){el.innerHTML='<div class="muted" style="padding:12px 0">保存済みの練習はありません</div>';return}
   [...history].reverse().forEach(item=>{
     const d=document.createElement("div"); d.className="history-item";
-    d.innerHTML=`<strong>${item.date}</strong> <span class="pill">${item.total}球</span>
-      <div class="muted" style="margin-top:4px">${item.memo || "メモなし"}</div>`;
+    d.innerHTML=`<strong>${escapeHtml(item.date)}</strong> <span class="pill">${item.total}球</span>
+      <div class="muted" style="margin-top:4px">${escapeHtml(item.memo || "メモなし")}</div>`;
     el.appendChild(d);
   });
 }
 
+function renderClubManager(){
+  const el=document.getElementById("clubList"); el.innerHTML="";
+  clubs.forEach((club,idx)=>{
+    const row=document.createElement("div"); row.className="club-item";
+    row.innerHTML=`
+      <div class="drag">${idx+1}</div>
+      <div><strong>${escapeHtml(club)}</strong></div>
+      <button class="small" ${idx===0?"disabled":""}>↑</button>
+      <button class="small" ${idx===clubs.length-1?"disabled":""}>↓</button>
+      <button class="small danger">削除</button>`;
+    const buttons=row.querySelectorAll("button");
+    buttons[0].onclick=()=>moveClub(idx,-1);
+    buttons[1].onclick=()=>moveClub(idx,1);
+    buttons[2].onclick=()=>removeClub(idx);
+    el.appendChild(row);
+  });
+}
+
+function addClub(){
+  const input=document.getElementById("newClubInput");
+  const name=input.value.trim();
+  if(!name)return;
+  if(clubs.some(c=>c.toLowerCase()===name.toLowerCase())){
+    alert("同じ名前のクラブがあります"); return;
+  }
+  clubs.push(name);
+  if(!state.selectedClub) state.selectedClub=name;
+  input.value="";
+  save(); renderAll();
+}
+
+function removeClub(idx){
+  const name=clubs[idx];
+  if(!confirm(`${name} を使用クラブから削除しますか？\n過去の記録は残ります。`)) return;
+  clubs.splice(idx,1);
+  if(state.selectedClub===name) state.selectedClub=clubs[0]||"";
+  save(); renderAll();
+}
+
+function moveClub(idx,dir){
+  const to=idx+dir;
+  if(to<0||to>=clubs.length)return;
+  [clubs[idx],clubs[to]]=[clubs[to],clubs[idx]];
+  save(); renderAll();
+}
+
+function setTarget(v){
+  const n=Math.max(1,Math.min(999,parseInt(v||100,10)));
+  state.target=n;
+  save(); renderProgress(); renderReport();
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+}
+
 function renderAll(){
-  renderTabs(); renderProgress(); renderStats(); renderReport(); renderHistory();
+  renderTabs(); renderProgress(); renderStats(); renderReport(); renderHistory(); renderClubManager();
   document.getElementById("memo").value=state.memo||"";
 }
 
 document.getElementById("memo").addEventListener("input",e=>{
   state.memo=e.target.value; save(); renderReport();
 });
+document.getElementById("targetInput").addEventListener("change",e=>setTarget(e.target.value));
+document.querySelectorAll(".targetQuick").forEach(b=>b.onclick=()=>setTarget(b.dataset.target));
+
+document.getElementById("openClubManagerBtn").onclick=()=>{
+  document.getElementById("clubManager").classList.remove("hidden");
+  document.getElementById("clubManager").scrollIntoView({behavior:"smooth",block:"start"});
+};
+document.getElementById("closeClubManagerBtn").onclick=()=>document.getElementById("clubManager").classList.add("hidden");
+document.getElementById("addClubBtn").onclick=addClub;
+document.getElementById("newClubInput").addEventListener("keydown",e=>{if(e.key==="Enter")addClub();});
+
 document.getElementById("undoBtn").onclick=()=>{state.shots.pop();save();renderAll();}
 document.getElementById("resetTodayBtn").onclick=()=>{
   if(confirm("今日の記録をリセットしますか？")){state.shots=[];state.memo="";save();renderAll();}
@@ -267,7 +400,7 @@ document.getElementById("saveSessionBtn").onclick=()=>{
   if(!state.shots.length){alert("記録がありません");return}
   history.push({
     date:new Date().toLocaleString("ja-JP"),
-    total:state.shots.length,memo:state.memo,report:buildReport()
+    total:state.shots.length,target:state.target,memo:state.memo,report:buildReport()
   });
   saveHistory(); alert("練習履歴に保存しました"); renderHistory();
 };
