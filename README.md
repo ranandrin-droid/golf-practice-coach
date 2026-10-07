@@ -1,4 +1,8 @@
-# Golf Practice Coach PWA v3
+# Golf Practice Coach PWA v4
+
+## v4 changes
+- 記録ボタン12個を3列×4行ですべて表示
+- 記録欄内のスクロールとスナップを廃止
 
 ## v3 changes
 - クラブ別の記録球数を集計欄で強調表示
