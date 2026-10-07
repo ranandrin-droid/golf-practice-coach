@@ -34,14 +34,21 @@
     .club-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
     .club-tabs button{flex:0 0 auto;min-width:64px}
     .club-tabs button.active{background:#111827;color:white}
-    .shot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
-    .shot-grid button{min-height:62px}
+    .recording-head{background:#eff6ff;border:2px solid #bfdbfe;border-radius:16px;padding:12px;margin-top:10px}
+    .recording-label{font-size:12px;color:#1e40af;font-weight:700}
+    .recording-value{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+    .recording-club{font-size:clamp(26px,8vw,38px);font-weight:800;overflow-wrap:anywhere}
+    .recording-count{font-size:clamp(28px,9vw,42px);font-weight:800;font-variant-numeric:tabular-nums}
+    .recording-count small{font-size:16px}
+    .shot-grid{height:clamp(340px,calc(100dvh - 310px),580px);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:100%;gap:8px;overflow-y:auto;overscroll-behavior-y:contain;scroll-snap-type:y proximity;-webkit-overflow-scrolling:touch;margin-top:10px;padding:2px 2px 8px}
+    .shot-grid button{min-height:0;font-size:clamp(17px,5vw,24px);touch-action:manipulation;scroll-snap-align:start}
     .shot-grid .good{background:var(--good)}
     .shot-grid .mid{background:var(--mid)}
     .shot-grid .bad{background:var(--bad)}
-    .special{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-    .stat{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:7px 0;border-bottom:1px solid var(--line)}
+    .stat{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:10px 0;border-bottom:1px solid var(--line)}
     .stat:last-child{border:0}
+    .stat-count{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+    .stat-count small{font-size:13px}
     .muted{color:var(--muted)}
     .progress{height:12px;background:#e5e7eb;border-radius:99px;overflow:hidden}
     .progress>div{height:100%;background:#111827;width:0}
@@ -59,6 +66,7 @@
     .drag{color:var(--muted);font-weight:700}
     .section-title{font-weight:700;margin-bottom:8px}
     .quick-targets{display:flex;gap:6px;flex-wrap:wrap}
+    @media (prefers-reduced-motion:reduce){.shot-grid{scroll-behavior:auto}}
   </style>
 </head>
 <body>
@@ -81,6 +89,40 @@
     </div>
 
     <div class="card">
+      <div class="row between">
+        <strong>使用クラブ</strong>
+        <button class="small" id="openClubManagerBtn">クラブ設定</button>
+      </div>
+      <div class="club-tabs" id="clubTabs" style="margin-top:10px"></div>
+      <div class="recording-head" aria-live="polite" aria-atomic="true">
+        <div class="recording-label">選択中のクラブ・今日の球数</div>
+        <div class="recording-value">
+          <span class="recording-club" id="selectedClubName">7I</span>
+          <span class="recording-count"><span id="selectedClubCount">0</span><small> 球</small></span>
+        </div>
+      </div>
+      <div class="muted" style="margin-top:10px;font-size:12px">上下にスクロールして選択（1画面に2つ）</div>
+      <div class="shot-grid" aria-label="ショットの記録">
+        <button class="good" data-dir="左" data-contact="良">左・良</button>
+        <button class="good" data-dir="中央" data-contact="良">中央・良</button>
+        <button class="good" data-dir="右" data-contact="良">右・良</button>
+        <button class="mid" data-dir="左" data-contact="普通">左・普通</button>
+        <button class="mid" data-dir="中央" data-contact="普通">中央・普通</button>
+        <button class="mid" data-dir="右" data-contact="普通">右・普通</button>
+        <button class="bad" data-dir="左" data-contact="悪">左・悪</button>
+        <button class="bad" data-dir="中央" data-contact="悪">中央・悪</button>
+        <button class="bad" data-dir="右" data-contact="悪">右・悪</button>
+        <button class="danger" data-special="トップ">トップ</button>
+        <button class="danger" data-special="ダフリ">ダフリ</button>
+        <button class="danger" data-special="シャンク">シャンク</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="small" id="undoBtn">直前を取消</button>
+        <button class="small" id="resetTodayBtn">今日をリセット</button>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="section-title">目標球数</div>
       <div class="row">
         <input id="targetInput" type="number" min="1" max="999" step="1" inputmode="numeric" />
@@ -94,33 +136,6 @@
         <button class="small targetQuick" data-target="150">150</button>
       </div>
       <div class="muted" style="margin-top:8px;font-size:12px">途中で変更しても記録はそのまま残ります。</div>
-    </div>
-
-    <div class="card">
-      <div class="row between">
-        <strong>使用クラブ</strong>
-        <button class="small" id="openClubManagerBtn">クラブ設定</button>
-      </div>
-      <div class="club-tabs" id="clubTabs" style="margin-top:10px"></div>
-      <div class="shot-grid">
-        <button class="good" data-dir="左" data-contact="良">左・良</button>
-        <button class="good" data-dir="中央" data-contact="良">中央・良</button>
-        <button class="good" data-dir="右" data-contact="良">右・良</button>
-        <button class="mid" data-dir="左" data-contact="普通">左・普通</button>
-        <button class="mid" data-dir="中央" data-contact="普通">中央・普通</button>
-        <button class="mid" data-dir="右" data-contact="普通">右・普通</button>
-        <button class="bad" data-dir="左" data-contact="悪">左・悪</button>
-        <button class="bad" data-dir="中央" data-contact="悪">中央・悪</button>
-        <button class="bad" data-dir="右" data-contact="悪">右・悪</button>
-      </div>
-      <div class="special">
-        <button class="danger" data-special="トップ">トップ</button>
-        <button class="danger" data-special="ダフリ">ダフリ</button>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <button class="small" id="undoBtn">直前を取消</button>
-        <button class="small" id="resetTodayBtn">今日をリセット</button>
-      </div>
     </div>
 
     <div class="card hidden" id="clubManager">
@@ -207,7 +222,7 @@ function renderTabs(){
   clubs.forEach(c=>{
     const b=document.createElement("button"); b.textContent=c;
     if(c===state.selectedClub)b.classList.add("active");
-    b.onclick=()=>{state.selectedClub=c;save();renderTabs();renderStats();}
+    b.onclick=()=>{state.selectedClub=c;save();renderTabs();renderSelectedClub();}
     el.appendChild(b);
   });
 }
@@ -237,7 +252,8 @@ function clubStats(club){
   const right=s.filter(x=>x.dir==="右").length;
   const top=s.filter(x=>x.special==="トップ").length;
   const fat=s.filter(x=>x.special==="ダフリ").length;
-  return {n,good,center,left,right,top,fat};
+  const shank=s.filter(x=>x.special==="シャンク").length;
+  return {n,good,center,left,right,top,fat,shank};
 }
 
 function pct(a,b){return b?Math.round(a/b*100):0}
@@ -245,6 +261,11 @@ function pct(a,b){return b?Math.round(a/b*100):0}
 function getAllUsedClubs(){
   const fromShots=[...new Set(state.shots.map(x=>x.club))];
   return [...new Set([...clubs,...fromShots])];
+}
+
+function renderSelectedClub(){
+  document.getElementById("selectedClubName").textContent=state.selectedClub||"未選択";
+  document.getElementById("selectedClubCount").textContent=state.selectedClub?clubStats(state.selectedClub).n:0;
 }
 
 function renderStats(){
@@ -258,9 +279,9 @@ function renderStats(){
     const s=clubStats(c);
     const d=document.createElement("div"); d.className="stat";
     d.innerHTML=`
-      <div><strong>${escapeHtml(c)}</strong> <span class="muted">${s.n}球</span></div><div></div>
+      <div><strong>${escapeHtml(c)}</strong></div><div class="stat-count">${s.n}<small> 球</small></div>
       <div class="muted">中央率 / 良い当たり率</div><div>${pct(s.center,s.n)}% / ${pct(s.good,s.n)}%</div>
-      <div class="muted">左 ${s.left}・右 ${s.right}・トップ ${s.top}・ダフリ ${s.fat}</div><div></div>`;
+      <div class="muted">左 ${s.left}・右 ${s.right}・トップ ${s.top}・ダフリ ${s.fat}・シャンク ${s.shank}</div><div></div>`;
     el.appendChild(d);
   });
 }
@@ -286,7 +307,7 @@ function buildReport(){
     out+=`${c} ${s.n}球\n`;
     out+=`中央 ${s.center} / 左 ${s.left} / 右 ${s.right}\n`;
     out+=`良い当たり ${s.good}/${s.n} (${pct(s.good,s.n)}%)\n`;
-    if(s.top||s.fat) out+=`トップ ${s.top} / ダフリ ${s.fat}\n`;
+    if(s.top||s.fat||s.shank) out+=`トップ ${s.top} / ダフリ ${s.fat} / シャンク ${s.shank}\n`;
     out+="\n";
   });
   out+=`感覚メモ\n${state.memo || "なし"}\n\n`;
@@ -364,7 +385,7 @@ function escapeHtml(s){
 }
 
 function renderAll(){
-  renderTabs(); renderProgress(); renderStats(); renderReport(); renderHistory(); renderClubManager();
+  renderTabs(); renderSelectedClub(); renderProgress(); renderStats(); renderReport(); renderHistory(); renderClubManager();
   document.getElementById("memo").value=state.memo||"";
 }
 
