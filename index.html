@@ -40,8 +40,8 @@
     .recording-club{font-size:clamp(26px,8vw,38px);font-weight:800;overflow-wrap:anywhere}
     .recording-count{font-size:clamp(28px,9vw,42px);font-weight:800;font-variant-numeric:tabular-nums}
     .recording-count small{font-size:16px}
-    .shot-grid{height:clamp(340px,calc(100dvh - 310px),580px);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:100%;gap:8px;overflow-y:auto;overscroll-behavior-y:contain;scroll-snap-type:y proximity;-webkit-overflow-scrolling:touch;margin-top:10px;padding:2px 2px 8px}
-    .shot-grid button{min-height:0;font-size:clamp(17px,5vw,24px);touch-action:manipulation;scroll-snap-align:start}
+    .shot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+    .shot-grid button{min-width:0;min-height:clamp(58px,11dvh,86px);padding:8px 3px;font-size:clamp(14px,4vw,20px);white-space:nowrap;touch-action:manipulation}
     .shot-grid .good{background:var(--good)}
     .shot-grid .mid{background:var(--mid)}
     .shot-grid .bad{background:var(--bad)}
@@ -66,7 +66,6 @@
     .drag{color:var(--muted);font-weight:700}
     .section-title{font-weight:700;margin-bottom:8px}
     .quick-targets{display:flex;gap:6px;flex-wrap:wrap}
-    @media (prefers-reduced-motion:reduce){.shot-grid{scroll-behavior:auto}}
   </style>
 </head>
 <body>
@@ -101,7 +100,6 @@
           <span class="recording-count"><span id="selectedClubCount">0</span><small> 球</small></span>
         </div>
       </div>
-      <div class="muted" style="margin-top:10px;font-size:12px">上下にスクロールして選択（1画面に2つ）</div>
       <div class="shot-grid" aria-label="ショットの記録">
         <button class="good" data-dir="左" data-contact="良">左・良</button>
         <button class="good" data-dir="中央" data-contact="良">中央・良</button>
