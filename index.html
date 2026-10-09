@@ -70,6 +70,15 @@
     select{font:inherit;max-width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff}
     .distance-box{margin-top:10px;padding:10px;background:#f9fafb;border-radius:12px}
     .distance-box input[type="range"]{width:100%;min-height:36px;accent-color:#2563eb}
+    .range-ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:0 3px;margin:-4px 0 8px}
+    .range-ticks span::before{content:"";display:block;width:1px;height:6px;background:#9ca3af;margin:0 auto 3px}
+    .history-editor{margin:10px 0;padding:12px;background:#f9fafb;border-radius:12px}
+    .history-editor label{display:block;font-size:13px;margin:8px 0}
+    .history-editor input[type="date"]{font:inherit;padding:8px;max-width:100%}
+    .edit-shot{border-top:1px solid var(--line);padding:8px 0}
+    .edit-shot input[type="text"]{min-width:80px;width:100%}
+    .edit-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .history-editor .row label{margin:0}
     .distance-value{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
     .hint{font-size:12px;color:var(--muted);line-height:1.6}
     .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
@@ -115,7 +124,9 @@
       <div class="distance-box">
         <div class="row between"><label for="distanceType">飛距離</label><select id="distanceType"><option value="total">ラン込み</option><option value="carry">キャリー</option></select><output id="distanceValue" class="distance-value" for="distanceSlider">— yd</output></div>
         <label class="hint" for="distanceSlider">平均を基準にスライダーで調整 → 打球結果をタップ</label>
-        <input id="distanceSlider" type="range" min="0" max="400" step="1" value="100" aria-label="飛距離（ヤード）" />
+        <input id="distanceSlider" type="range" min="0" max="300" step="1" value="100" list="distanceTicks" aria-label="飛距離（ヤード）" />
+        <datalist id="distanceTicks"><option value="0"></option><option value="50"></option><option value="100"></option><option value="150"></option><option value="200"></option><option value="250"></option><option value="300"></option></datalist>
+        <div class="range-ticks" aria-hidden="true"><span>0</span><span>50</span><span>100</span><span>150</span><span>200</span><span>250</span><span>300</span></div>
         <div class="row between"><div class="row"><button class="small" id="distanceMinus" aria-label="飛距離を1ヤード減らす">−1</button><button class="small" id="distancePlus" aria-label="飛距離を1ヤード増やす">＋1</button><button class="small" id="distanceAverage">平均に戻す</button></div><label class="hint"><input id="distanceUnknown" type="checkbox" checked /> 距離不明</label></div>
         <div id="distanceBaseline" class="hint" aria-live="polite"></div>
       </div>
@@ -204,6 +215,7 @@
         <button class="small danger" id="clearHistoryBtn">履歴削除</button>
       </div>
       <div id="historyList"></div>
+      <details><summary>削除した履歴を戻す</summary><div id="deletedHistoryList"></div></details>
       <button class="small" id="backupBtn">全記録をバックアップ（JSON）</button>
       <p class="hint">記録はこの端末・ブラウザー内に保存されます。Safariのデータ削除前にバックアップしてください。v5より前の履歴は保存済みレポートで詳細を表示します。</p>
     </div>
@@ -230,6 +242,7 @@
 </div>
 
 <script src="./analytics.js"></script>
+<script src="./history-editor.js"></script>
 <script>
 const DEFAULT_CLUBS = ["AW","PW","7I","4UT","Driver"];
 let state = JSON.parse(localStorage.getItem("golfState") || "null") || {
@@ -455,7 +468,7 @@ document.getElementById("shareBtn").onclick=async()=>{
 document.getElementById("saveSessionBtn").onclick=saveSession;
 document.getElementById("savePracticeBtn").onclick=saveSession;
 document.getElementById("clearHistoryBtn").onclick=()=>{
-  if(confirm("すべての履歴を削除しますか？飛距離の推移からも消えます。先にバックアップをおすすめします。")){history=[];saveHistory();renderAll();}
+  if(confirm("すべての履歴を削除済みに移動しますか？「削除した履歴を戻す」から復元できます。編集中の練習記録は残ります。")){history.forEach(h=>{if(!h.deletedAt)h.deletedAt=Date.now();});saveHistory();renderAll();}
 };
 
 document.querySelectorAll(".navBtn").forEach(btn=>{

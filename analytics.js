@@ -12,7 +12,7 @@ function distanceStats(shots,type){
 function fmt(value){return value===null?"—":(Math.round(value*10)/10).toFixed(1);}
 function allShots(){
   const seen=new Map();
-  const saved=history.filter(h=>h.sessionId!==state.sessionId).flatMap(h=>Array.isArray(h.shots)?h.shots:[]);
+  const saved=history.filter(h=>!h.deletedAt&&h.sessionId!==state.sessionId).flatMap(h=>Array.isArray(h.shots)?h.shots:[]);
   [...saved,...state.shots].forEach(s=>{
     const key=s.id||JSON.stringify([s.ts,s.club,s.dir,s.contact,s.special,s.distance,s.distanceType]);
     seen.set(key,s);
@@ -29,7 +29,7 @@ function distanceSummary(club,shots){
 function resetDistanceDraft(){
   const shots=recentClubShots(state.selectedClub);
   const s=distanceStats(shots,distanceType);
-  distanceDraft=s.n?Math.round(s.avg):100;
+  distanceDraft=s.n?Math.min(300,Math.round(s.avg)):100;
   document.getElementById("distanceUnknown").checked=!s.n;
   document.getElementById("distanceType").value=distanceType;
   document.getElementById("distanceBaseline").textContent=s.n
@@ -46,13 +46,13 @@ function updateDistanceOutput(){
 function setupDistanceControls(){
   document.getElementById("distanceType").onchange=e=>{distanceType=e.target.value;localStorage.setItem("golfDistanceType",distanceType);resetDistanceDraft();};
   document.getElementById("distanceSlider").oninput=e=>{distanceDraft=Number(e.target.value);document.getElementById("distanceUnknown").checked=false;updateDistanceOutput();};
-  [-1,1].forEach(delta=>{document.getElementById(delta<0?"distanceMinus":"distancePlus").onclick=()=>{distanceDraft=Math.max(0,Math.min(400,distanceDraft+delta));document.getElementById("distanceUnknown").checked=false;updateDistanceOutput();};});
+  [-1,1].forEach(delta=>{document.getElementById(delta<0?"distanceMinus":"distancePlus").onclick=()=>{distanceDraft=Math.max(0,Math.min(300,distanceDraft+delta));document.getElementById("distanceUnknown").checked=false;updateDistanceOutput();};});
   document.getElementById("distanceAverage").onclick=resetDistanceDraft;
   document.getElementById("distanceUnknown").onchange=updateDistanceOutput;
   document.getElementById("trendClub").onchange=e=>{trendClub=e.target.value;renderDistancePage();};
   document.getElementById("trendType").onchange=renderDistancePage;
   document.getElementById("backupBtn").onclick=()=>{
-    const data={version:5,exportedAt:new Date().toISOString(),state,clubs,history};
+    const data={version:6,exportedAt:new Date().toISOString(),state,clubs,history};
     const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
     const a=document.createElement("a");a.href=url;a.download=`golf-backup-${dayKey(Date.now())}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
@@ -67,8 +67,10 @@ function saveSession(){
 }
 function renderHistoryDetails(){
   const el=document.getElementById("historyList");el.innerHTML="";
-  if(!history.length){el.innerHTML='<p class="muted">保存済みの練習はありません</p>';return;}
-  [...history].reverse().forEach(item=>{
+  renderDeletedHistory();
+  const active=history.filter(h=>!h.deletedAt);
+  if(!active.length){el.innerHTML='<p class="muted">保存済みの練習はありません</p>';return;}
+  [...active].reverse().forEach(item=>{
     const details=document.createElement("details");details.className="history-item";
     const summary=document.createElement("summary");summary.textContent=`${item.date} ・ ${item.total}球　詳細を見る`;details.appendChild(summary);
     const meta=document.createElement("p");meta.className="hint";meta.textContent=`目標 ${item.target||"—"}球 ／ ${item.memo||"メモなし"}`;details.appendChild(meta);
@@ -82,7 +84,10 @@ function renderHistoryDetails(){
       const note=document.createElement("p");note.className="hint";note.textContent="旧版の履歴：1球単位のデータは未保存のため、保存済みレポートのクラブ別集計を表示します。飛距離は復元できません。";details.appendChild(note);
       const report=document.createElement("div");report.className="report";report.textContent=item.report||"この履歴には詳細データがありません。";details.appendChild(report);
     }
-    el.appendChild(details);
+    const actions=document.createElement("div");actions.className="row";
+    const edit=document.createElement("button");edit.className="small";edit.textContent="この履歴を編集";edit.onclick=()=>openHistoryEditor(item,details);
+    const remove=document.createElement("button");remove.className="small danger";remove.textContent="この履歴を削除";remove.onclick=()=>deleteHistoryItem(item);
+    actions.appendChild(edit);actions.appendChild(remove);details.appendChild(actions);el.appendChild(details);
   });
 }
 function dayKey(ts){const d=new Date(ts);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
