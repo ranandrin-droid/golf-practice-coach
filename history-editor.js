@@ -30,9 +30,9 @@ function createEditedHistory(item,form){
       let distance=null;
       if(!row.unknown){
         distance=Number(row.distance);
-        const limit=clubDistanceLimit(club);
-        const preserved=distance===original.distance&&row.type===original.distanceType&&club===original.club&&distance>limit&&distance<=400;
-        if(String(row.distance).trim()===""||!Number.isInteger(distance)||distance<0||(distance>limit&&!preserved))throw Error(`${index+1}球目の${club}の飛距離は0〜${limit}ydの整数で入力してください。`);
+        const limit=clubDistanceLimit(club),minimum=clubDistanceMinimum(club);
+        const preserved=distance===original.distance&&row.type===original.distanceType&&club===original.club&&(distance>limit||distance<minimum)&&distance>=0&&distance<=400;
+        if(String(row.distance).trim()===""||!Number.isInteger(distance)||((distance<minimum||distance>limit)&&!preserved))throw Error(`${index+1}球目の${club}の飛距離は${minimum}〜${limit}ydの整数で入力してください。`);
       }
       const special=["トップ","ダフリ","シャンク"].includes(row.result)?row.result:"";
       const [dir,contact]=special?["",""]:row.result.split("・");
@@ -67,12 +67,12 @@ function openHistoryEditor(item,details){
     <label>目標球数 <input class="edit-target" type="number" min="1" max="999" value="${Number(item.target)||100}" /></label>
     <label>感覚メモ <textarea class="edit-memo">${escapeHtml(item.memo||"")}</textarea></label>`;
   if(Array.isArray(item.shots)){
-    const records=document.createElement("details");records.innerHTML='<summary>1球ごとの記録を編集</summary><p class="hint">除外にチェックすると、その球は保存後の集計から外れます。飛距離はクラブ別上限まで入力できます。既存の上限超の距離は変更しない限り保持します。</p>';
+    const records=document.createElement("details");records.innerHTML='<summary>1球ごとの記録を編集</summary><p class="hint">除外にチェックすると、その球は保存後の集計から外れます。飛距離はクラブ別の下限〜上限で入力できます。既存の範囲外の距離は変更しない限り保持します。</p>';
     item.shots.forEach((shot,i)=>{
       const row=document.createElement("div");row.className="edit-shot";
       row.innerHTML=`<strong>${i+1}球目</strong><div class="edit-fields"><label>クラブ<input class="edit-club" type="text" maxlength="60" value="${escapeHtml(shot.club)}" /></label><label>打球結果<select class="edit-result">${SHOT_RESULTS.map(result=>`<option value="${result}" ${result===(shot.special||`${shot.dir}・${shot.contact}`)?"selected":""}>${result}</option>`).join("")}</select></label><label>飛距離（yd）<input class="edit-distance" type="number" min="0" max="300" step="1" value="${validDistance(shot)?shot.distance:""}" /></label><label>距離種別<select class="edit-type"><option value="total" ${shot.distanceType!=="carry"?"selected":""}>ラン込み</option><option value="carry" ${shot.distanceType==="carry"?"selected":""}>キャリー</option></select></label></div><div class="row"><label><input class="edit-unknown" type="checkbox" ${!validDistance(shot)?"checked":""} /> 距離不明</label><label><input class="edit-remove" type="checkbox" /> この球を除外</label></div>`;
       const input=row.querySelector(".edit-distance"),unknown=row.querySelector(".edit-unknown");
-      const clubInput=row.querySelector(".edit-club");const updateMax=()=>{input.max=clubDistanceLimit(clubInput.value.trim());};updateMax();clubInput.oninput=updateMax;
+      const clubInput=row.querySelector(".edit-club");const updateMax=()=>{input.max=clubDistanceLimit(clubInput.value.trim());input.min=clubDistanceMinimum(clubInput.value.trim());};updateMax();clubInput.oninput=updateMax;
       input.oninput=()=>{unknown.checked=input.value.trim()==="";};records.appendChild(row);
     });editor.appendChild(records);
   }else{

@@ -24,7 +24,8 @@
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .between{justify-content:space-between}
     button,input,textarea{font:inherit}
-    button{border:0;border-radius:12px;padding:12px 14px;background:#e5e7eb;color:#111827;font-weight:700}
+    button{border:0;border-radius:12px;padding:12px 14px;background:#e5e7eb;color:#111827;font-weight:700;touch-action:manipulation}
+    #distanceMinus,#distancePlus{min-width:44px;min-height:44px;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
     button.primary{background:var(--accent);color:#fff}
     button.danger{background:#fee2e2;color:#991b1b}
     button.small{padding:8px 10px;font-size:13px}
@@ -181,7 +182,7 @@
       </div>
       <div class="club-list" id="clubList"></div>
       <div class="muted" style="margin-top:8px;font-size:12px">
-        ↑↓で並び替えできます。飛距離上限はクラブごとに1〜300ydで設定できます（未設定は300yd）。上限変更・クラブ削除で過去の記録は変わりません。
+        ↑↓で並び替えできます。入力範囲はクラブごとに0〜300ydで設定できます（下限＜上限・未設定は0〜300yd）。範囲変更・クラブ削除で過去の記録は変わりません。
       </div>
     </div>
 
@@ -244,8 +245,8 @@
   </div>
 </div>
 
-<script src="./analytics.js?v=7"></script>
-<script src="./history-editor.js?v=7"></script>
+<script src="./analytics.js?v=8"></script>
+<script src="./history-editor.js?v=8"></script>
 <script>
 const DEFAULT_CLUBS = ["AW","PW","7I","4UT","Driver"];
 let state = JSON.parse(localStorage.getItem("golfState") || "null") || {
@@ -259,6 +260,7 @@ if(!clubs.includes(state.selectedClub)) state.selectedClub = clubs[0];
 
 let history = JSON.parse(localStorage.getItem("golfHistory") || "[]");
 let clubLimits=Object.assign(Object.create(null),JSON.parse(localStorage.getItem("golfClubLimits")||"{}"));
+let clubMinimums=Object.assign(Object.create(null),JSON.parse(localStorage.getItem("golfClubMinimums")||"{}"));
 if(!state.sessionId) state.sessionId=newId();
 state.shots.forEach((shot,i)=>{if(!shot.id)shot.id=`${state.sessionId}-${i}`;});
 let distanceType=localStorage.getItem("golfDistanceType")||"total";
@@ -270,6 +272,7 @@ function save(){
   localStorage.setItem("golfState", JSON.stringify(state));
   localStorage.setItem("golfClubs", JSON.stringify(clubs));
   localStorage.setItem("golfClubLimits",JSON.stringify(clubLimits));
+  localStorage.setItem("golfClubMinimums",JSON.stringify(clubMinimums));
 }
 function saveHistory(){ localStorage.setItem("golfHistory", JSON.stringify(history)); }
 
@@ -288,7 +291,7 @@ function addShot(dir, contact, special){
   state.shots.push({
     id:newId(),ts:Date.now(), club:state.selectedClub,
     dir:dir||"", contact:contact||"", special:special||"",
-    distance:document.getElementById("distanceUnknown").checked?null:Math.min(clubDistanceLimit(state.selectedClub),distanceDraft),distanceType
+    distance:document.getElementById("distanceUnknown").checked?null:clampClubDistance(state.selectedClub,distanceDraft),distanceType
   });
   save(); renderAll();
 }
@@ -395,13 +398,15 @@ function renderClubManager(){
     buttons[1].onclick=()=>moveClub(idx,1);
     buttons[2].onclick=()=>removeClub(idx);
     const limitRow=document.createElement("div");limitRow.className="club-limit";
-    const label=document.createElement("label");label.textContent="飛距離上限 ";
+    const minimumLabel=document.createElement("label");minimumLabel.textContent="下限 ";
+    const minimumInput=document.createElement("input");minimumInput.type="number";minimumInput.min="0";minimumInput.max="299";minimumInput.step="1";minimumInput.inputMode="numeric";minimumInput.value=clubDistanceMinimum(club);minimumInput.setAttribute("aria-label",`${club}の飛距離下限（yd）`);minimumLabel.appendChild(minimumInput);
+    const label=document.createElement("label");label.textContent="上限 ";
     const input=document.createElement("input");input.type="number";input.min="1";input.max="300";input.step="1";input.inputMode="numeric";input.value=clubDistanceLimit(club);input.setAttribute("aria-label",`${club}の飛距離上限（yd）`);label.appendChild(input);
     const unit=document.createElement("span");unit.textContent="yd";
-    const apply=document.createElement("button");apply.className="small";apply.textContent="上限を保存";
+    const apply=document.createElement("button");apply.className="small";apply.textContent="範囲を保存";
     const status=document.createElement("span");status.className="hint";status.setAttribute("role","status");
-    apply.onclick=()=>{try{setClubDistanceLimit(club,input.value);input.value=clubDistanceLimit(club);status.textContent="保存済み";}catch(e){status.textContent=e.message;}};
-    limitRow.appendChild(label);limitRow.appendChild(unit);limitRow.appendChild(apply);limitRow.appendChild(status);row.appendChild(limitRow);
+    apply.onclick=()=>{try{setClubDistanceRange(club,minimumInput.value,input.value);minimumInput.value=clubDistanceMinimum(club);input.value=clubDistanceLimit(club);status.textContent="保存済み";}catch(e){status.textContent=e.message;}};
+    limitRow.appendChild(minimumLabel);limitRow.appendChild(label);limitRow.appendChild(unit);limitRow.appendChild(apply);limitRow.appendChild(status);row.appendChild(limitRow);
     el.appendChild(row);
   });
 }
