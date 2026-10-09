@@ -64,13 +64,16 @@
     .install-tip{font-size:13px;color:#374151;background:#eef2ff;border-radius:12px;padding:10px}
     .club-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
     .club-item{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:6px;align-items:center}
+    .club-limit{grid-column:2 / -1;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px}
+    .club-limit input[type="number"]{width:76px;padding:8px}
     .drag{color:var(--muted);font-weight:700}
     .section-title{font-weight:700;margin-bottom:8px}
     .quick-targets{display:flex;gap:6px;flex-wrap:wrap}
     select{font:inherit;max-width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff}
     .distance-box{margin-top:10px;padding:10px;background:#f9fafb;border-radius:12px}
     .distance-box input[type="range"]{width:100%;min-height:36px;accent-color:#2563eb}
-    .range-ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:0 3px;margin:-4px 0 8px}
+    .range-ticks{position:relative;height:23px;font-size:11px;color:var(--muted);margin:-4px 7px 8px}
+    .range-ticks span{position:absolute;transform:translateX(-50%)}
     .range-ticks span::before{content:"";display:block;width:1px;height:6px;background:#9ca3af;margin:0 auto 3px}
     .history-editor{margin:10px 0;padding:12px;background:#f9fafb;border-radius:12px}
     .history-editor label{display:block;font-size:13px;margin:8px 0}
@@ -126,7 +129,7 @@
         <label class="hint" for="distanceSlider">平均を基準にスライダーで調整 → 打球結果をタップ</label>
         <input id="distanceSlider" type="range" min="0" max="300" step="1" value="100" list="distanceTicks" aria-label="飛距離（ヤード）" />
         <datalist id="distanceTicks"><option value="0"></option><option value="50"></option><option value="100"></option><option value="150"></option><option value="200"></option><option value="250"></option><option value="300"></option></datalist>
-        <div class="range-ticks" aria-hidden="true"><span>0</span><span>50</span><span>100</span><span>150</span><span>200</span><span>250</span><span>300</span></div>
+        <div class="range-ticks" id="distanceScale" aria-hidden="true"></div>
         <div class="row between"><div class="row"><button class="small" id="distanceMinus" aria-label="飛距離を1ヤード減らす">−1</button><button class="small" id="distancePlus" aria-label="飛距離を1ヤード増やす">＋1</button><button class="small" id="distanceAverage">平均に戻す</button></div><label class="hint"><input id="distanceUnknown" type="checkbox" checked /> 距離不明</label></div>
         <div id="distanceBaseline" class="hint" aria-live="polite"></div>
       </div>
@@ -178,7 +181,7 @@
       </div>
       <div class="club-list" id="clubList"></div>
       <div class="muted" style="margin-top:8px;font-size:12px">
-        ↑↓で並び替えできます。記録済みのクラブを削除しても過去データは残ります。
+        ↑↓で並び替えできます。飛距離上限はクラブごとに1〜300ydで設定できます（未設定は300yd）。上限変更・クラブ削除で過去の記録は変わりません。
       </div>
     </div>
 
@@ -255,6 +258,7 @@ if(!Array.isArray(clubs) || !clubs.length) clubs = DEFAULT_CLUBS.slice();
 if(!clubs.includes(state.selectedClub)) state.selectedClub = clubs[0];
 
 let history = JSON.parse(localStorage.getItem("golfHistory") || "[]");
+let clubLimits=Object.assign(Object.create(null),JSON.parse(localStorage.getItem("golfClubLimits")||"{}"));
 if(!state.sessionId) state.sessionId=newId();
 state.shots.forEach((shot,i)=>{if(!shot.id)shot.id=`${state.sessionId}-${i}`;});
 let distanceType=localStorage.getItem("golfDistanceType")||"total";
@@ -265,6 +269,7 @@ let trendClub=state.selectedClub;
 function save(){
   localStorage.setItem("golfState", JSON.stringify(state));
   localStorage.setItem("golfClubs", JSON.stringify(clubs));
+  localStorage.setItem("golfClubLimits",JSON.stringify(clubLimits));
 }
 function saveHistory(){ localStorage.setItem("golfHistory", JSON.stringify(history)); }
 
@@ -283,7 +288,7 @@ function addShot(dir, contact, special){
   state.shots.push({
     id:newId(),ts:Date.now(), club:state.selectedClub,
     dir:dir||"", contact:contact||"", special:special||"",
-    distance:document.getElementById("distanceUnknown").checked?null:distanceDraft,distanceType
+    distance:document.getElementById("distanceUnknown").checked?null:Math.min(clubDistanceLimit(state.selectedClub),distanceDraft),distanceType
   });
   save(); renderAll();
 }
@@ -389,6 +394,14 @@ function renderClubManager(){
     buttons[0].onclick=()=>moveClub(idx,-1);
     buttons[1].onclick=()=>moveClub(idx,1);
     buttons[2].onclick=()=>removeClub(idx);
+    const limitRow=document.createElement("div");limitRow.className="club-limit";
+    const label=document.createElement("label");label.textContent="飛距離上限 ";
+    const input=document.createElement("input");input.type="number";input.min="1";input.max="300";input.step="1";input.inputMode="numeric";input.value=clubDistanceLimit(club);input.setAttribute("aria-label",`${club}の飛距離上限（yd）`);label.appendChild(input);
+    const unit=document.createElement("span");unit.textContent="yd";
+    const apply=document.createElement("button");apply.className="small";apply.textContent="上限を保存";
+    const status=document.createElement("span");status.className="hint";status.setAttribute("role","status");
+    apply.onclick=()=>{try{setClubDistanceLimit(club,input.value);input.value=clubDistanceLimit(club);status.textContent="保存済み";}catch(e){status.textContent=e.message;}};
+    limitRow.appendChild(label);limitRow.appendChild(unit);limitRow.appendChild(apply);limitRow.appendChild(status);row.appendChild(limitRow);
     el.appendChild(row);
   });
 }

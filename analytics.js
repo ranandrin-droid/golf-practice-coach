@@ -1,6 +1,26 @@
 /* Flight-distance records are local-only. Legacy reports are never converted to shots. */
 function newId(){return globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;}
 function typeLabel(type){return type==="carry"?"キャリー":"ラン込み";}
+function clubDistanceLimit(club){const n=Number(clubLimits[club]);return Number.isInteger(n)&&n>=1&&n<=300?n:300;}
+function setClubDistanceLimit(club,value){
+  const n=Number(value);
+  if(String(value).trim()===""||!Number.isInteger(n)||n<1||n>300)throw Error("1〜300ydの整数で入力してください。");
+  const old=clubLimits[club];clubLimits[club]=n;
+  try{save();}catch(e){if(old===undefined)delete clubLimits[club];else clubLimits[club]=old;throw Error("保存できませんでした。");}
+  if(club===state.selectedClub)resetDistanceDraft();
+}
+function scaleTicks(max){
+  const step=max<=30?5:max<=60?10:max<=150?25:50;
+  const ticks=[0];for(let value=step;value<max;value+=step)ticks.push(value);
+  if(ticks.length>1&&max-ticks[ticks.length-1]<step/2)ticks.pop();
+  ticks.push(max);return ticks;
+}
+function renderDistanceScale(max){
+  document.getElementById("distanceSlider").max=max;
+  const ticks=scaleTicks(max);
+  document.getElementById("distanceTicks").innerHTML=ticks.map(value=>`<option value="${value}"></option>`).join("");
+  document.getElementById("distanceScale").innerHTML=ticks.map(value=>`<span style="left:${value/max*100}%">${value}</span>`).join("");
+}
 function validDistance(shot,type){return typeof shot.distance==="number"&&Number.isFinite(shot.distance)&&shot.distance>=0&&shot.distance<=400&&["total","carry"].includes(shot.distanceType)&&(!type||shot.distanceType===type);}
 function distanceStats(shots,type){
   const values=shots.filter(s=>validDistance(s,type)).map(s=>s.distance);
@@ -29,12 +49,13 @@ function distanceSummary(club,shots){
 function resetDistanceDraft(){
   const shots=recentClubShots(state.selectedClub);
   const s=distanceStats(shots,distanceType);
-  distanceDraft=s.n?Math.min(300,Math.round(s.avg)):100;
+  const max=clubDistanceLimit(state.selectedClub);renderDistanceScale(max);
+  distanceDraft=Math.min(max,s.n?Math.round(s.avg):100);
   document.getElementById("distanceUnknown").checked=!s.n;
   document.getElementById("distanceType").value=distanceType;
   document.getElementById("distanceBaseline").textContent=s.n
-    ?`直近${shots.length}球中 ${typeLabel(distanceType)} ${s.n}球の平均：${fmt(s.avg)}yd（ミス含む）`
-    :"平均はまだありません。初期値100ydから調整してください（調整すると距離が記録されます）。";
+    ?`直近${shots.length}球中 ${typeLabel(distanceType)} ${s.n}球の平均：${fmt(s.avg)}yd（ミス含む） / 入力上限 ${max}yd${s.avg>max?"。平均が上限を超えるため入力値は上限に合わせています。":""}`
+    :`平均はまだありません。初期値${Math.min(max,100)}ydから調整してください（調整すると記録されます）。入力上限 ${max}yd`;
   updateDistanceOutput();
 }
 function updateDistanceOutput(){
@@ -45,14 +66,14 @@ function updateDistanceOutput(){
 }
 function setupDistanceControls(){
   document.getElementById("distanceType").onchange=e=>{distanceType=e.target.value;localStorage.setItem("golfDistanceType",distanceType);resetDistanceDraft();};
-  document.getElementById("distanceSlider").oninput=e=>{distanceDraft=Number(e.target.value);document.getElementById("distanceUnknown").checked=false;updateDistanceOutput();};
-  [-1,1].forEach(delta=>{document.getElementById(delta<0?"distanceMinus":"distancePlus").onclick=()=>{distanceDraft=Math.max(0,Math.min(300,distanceDraft+delta));document.getElementById("distanceUnknown").checked=false;updateDistanceOutput();};});
+  document.getElementById("distanceSlider").oninput=e=>{distanceDraft=Math.max(0,Math.min(clubDistanceLimit(state.selectedClub),Number(e.target.value)));document.getElementById("distanceUnknown").checked=false;updateDistanceOutput();};
+  [-1,1].forEach(delta=>{document.getElementById(delta<0?"distanceMinus":"distancePlus").onclick=()=>{distanceDraft=Math.max(0,Math.min(clubDistanceLimit(state.selectedClub),distanceDraft+delta));document.getElementById("distanceUnknown").checked=false;updateDistanceOutput();};});
   document.getElementById("distanceAverage").onclick=resetDistanceDraft;
   document.getElementById("distanceUnknown").onchange=updateDistanceOutput;
   document.getElementById("trendClub").onchange=e=>{trendClub=e.target.value;renderDistancePage();};
   document.getElementById("trendType").onchange=renderDistancePage;
   document.getElementById("backupBtn").onclick=()=>{
-    const data={version:6,exportedAt:new Date().toISOString(),state,clubs,history};
+    const data={version:7,exportedAt:new Date().toISOString(),state,clubs,clubLimits,history};
     const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
     const a=document.createElement("a");a.href=url;a.download=`golf-backup-${dayKey(Date.now())}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
