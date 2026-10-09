@@ -1,7 +1,7 @@
 /* Flight-distance records are local-only. Legacy reports are never converted to shots. */
 function newId(){return globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;}
 function typeLabel(type){return type==="carry"?"キャリー":"ラン込み";}
-function clubDistanceLimit(club){const n=Number(clubLimits[club]);return Number.isInteger(n)&&n>=1&&n<=300?n:300;}
+function clubDistanceLimit(club){const n=Number(typeof clubLimits==="undefined"?300:clubLimits[club]);return Number.isInteger(n)&&n>=1&&n<=300?n:300;}
 function setClubDistanceLimit(club,value){
   const n=Number(value);
   if(String(value).trim()===""||!Number.isInteger(n)||n<1||n>300)throw Error("1〜300ydの整数で入力してください。");
@@ -19,7 +19,7 @@ function renderDistanceScale(max){
   document.getElementById("distanceSlider").max=max;
   const ticks=scaleTicks(max);
   document.getElementById("distanceTicks").innerHTML=ticks.map(value=>`<option value="${value}"></option>`).join("");
-  document.getElementById("distanceScale").innerHTML=ticks.map(value=>`<span style="left:${value/max*100}%">${value}</span>`).join("");
+  const scale=document.getElementById("distanceScale");if(scale)scale.innerHTML=ticks.map(value=>`<span style="left:${value/max*100}%">${value}</span>`).join("");
 }
 function validDistance(shot,type){return typeof shot.distance==="number"&&Number.isFinite(shot.distance)&&shot.distance>=0&&shot.distance<=400&&["total","carry"].includes(shot.distanceType)&&(!type||shot.distanceType===type);}
 function distanceStats(shots,type){
@@ -73,7 +73,7 @@ function setupDistanceControls(){
   document.getElementById("trendClub").onchange=e=>{trendClub=e.target.value;renderDistancePage();};
   document.getElementById("trendType").onchange=renderDistancePage;
   document.getElementById("backupBtn").onclick=()=>{
-    const data={version:7,exportedAt:new Date().toISOString(),state,clubs,clubLimits,history};
+    const data={version:7,exportedAt:new Date().toISOString(),state,clubs,clubLimits:typeof clubLimits==="undefined"?{}:clubLimits,history};
     const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
     const a=document.createElement("a");a.href=url;a.download=`golf-backup-${dayKey(Date.now())}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
