@@ -41,7 +41,7 @@
     .recording-count{font-size:clamp(28px,9vw,42px);font-weight:800;font-variant-numeric:tabular-nums}
     .recording-count small{font-size:16px}
     .shot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
-    .shot-grid button{min-width:0;min-height:clamp(58px,11dvh,86px);padding:8px 3px;font-size:clamp(14px,4vw,20px);white-space:nowrap;touch-action:manipulation}
+    .shot-grid button{min-width:0;min-height:clamp(48px,7dvh,72px);padding:8px 3px;font-size:clamp(14px,4vw,20px);white-space:nowrap;touch-action:manipulation}
     .shot-grid .good{background:var(--good)}
     .shot-grid .mid{background:var(--mid)}
     .shot-grid .bad{background:var(--bad)}
@@ -56,7 +56,8 @@
     .history-item{border-top:1px solid var(--line);padding:10px 0}
     .history-item:first-child{border-top:0}
     .bottom{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:8px max(12px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
-    .bottom-inner{max-width:680px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+    .bottom-inner{max-width:680px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+    .bottom-inner button{padding:12px 4px;font-size:14px}
     .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#f3f4f6;font-size:12px}
     .hidden{display:none!important}
     .report{white-space:pre-wrap;background:#f9fafb;padding:12px;border-radius:12px;font-size:14px}
@@ -66,6 +67,17 @@
     .drag{color:var(--muted);font-weight:700}
     .section-title{font-weight:700;margin-bottom:8px}
     .quick-targets{display:flex;gap:6px;flex-wrap:wrap}
+    select{font:inherit;max-width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+    .distance-box{margin-top:10px;padding:10px;background:#f9fafb;border-radius:12px}
+    .distance-box input[type="range"]{width:100%;min-height:36px;accent-color:#2563eb}
+    .distance-value{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+    .hint{font-size:12px;color:var(--muted);line-height:1.6}
+    .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+    .metric{padding:12px;background:#eff6ff;border-radius:12px;overflow-wrap:anywhere}
+    .metric strong{display:block;font-size:24px;margin-top:4px}
+    details>summary{cursor:pointer;padding:10px 0;font-weight:700}
+    .chart{width:100%;display:block;height:auto}
+    .table-wrap{overflow-x:auto} table{width:100%;border-collapse:collapse;font-size:13px} th,td{padding:8px 4px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
   </style>
 </head>
 <body>
@@ -100,6 +112,13 @@
           <span class="recording-count"><span id="selectedClubCount">0</span><small> 球</small></span>
         </div>
       </div>
+      <div class="distance-box">
+        <div class="row between"><label for="distanceType">飛距離</label><select id="distanceType"><option value="total">ラン込み</option><option value="carry">キャリー</option></select><output id="distanceValue" class="distance-value" for="distanceSlider">— yd</output></div>
+        <label class="hint" for="distanceSlider">平均を基準にスライダーで調整 → 打球結果をタップ</label>
+        <input id="distanceSlider" type="range" min="0" max="400" step="1" value="100" aria-label="飛距離（ヤード）" />
+        <div class="row between"><div class="row"><button class="small" id="distanceMinus" aria-label="飛距離を1ヤード減らす">−1</button><button class="small" id="distancePlus" aria-label="飛距離を1ヤード増やす">＋1</button><button class="small" id="distanceAverage">平均に戻す</button></div><label class="hint"><input id="distanceUnknown" type="checkbox" checked /> 距離不明</label></div>
+        <div id="distanceBaseline" class="hint" aria-live="polite"></div>
+      </div>
       <div class="shot-grid" aria-label="ショットの記録">
         <button class="good" data-dir="左" data-contact="良">左・良</button>
         <button class="good" data-dir="中央" data-contact="良">中央・良</button>
@@ -117,6 +136,7 @@
       <div class="row" style="margin-top:10px">
         <button class="small" id="undoBtn">直前を取消</button>
         <button class="small" id="resetTodayBtn">今日をリセット</button>
+        <button class="small" id="savePracticeBtn">練習を保存</button>
       </div>
     </div>
 
@@ -184,7 +204,19 @@
         <button class="small danger" id="clearHistoryBtn">履歴削除</button>
       </div>
       <div id="historyList"></div>
+      <button class="small" id="backupBtn">全記録をバックアップ（JSON）</button>
+      <p class="hint">記録はこの端末・ブラウザー内に保存されます。Safariのデータ削除前にバックアップしてください。v5より前の履歴は保存済みレポートで詳細を表示します。</p>
     </div>
+  </section>
+  <section id="distanceView" class="hidden">
+    <div class="card">
+      <strong>飛距離の推移</strong>
+      <div class="row" style="margin-top:12px"><label for="trendClub">クラブ</label><select id="trendClub"></select><label for="trendType">距離</label><select id="trendType"><option value="total">ラン込み</option><option value="carry">キャリー</option></select></div>
+      <div id="distanceMetrics"></div><div id="distanceChart"></div>
+      <p class="hint">各日の終了時点の直近300球の平均です。距離不明・異なる距離種別は除外し、0ydやミスショットは含めます。300球未満はある分で計算。保存前の記録も含みます。</p>
+      <details><summary>日別の数値を見る</summary><div class="table-wrap" id="distanceTable"></div></details>
+    </div>
+    <div class="card"><strong>クラブ別・直近300球の飛距離</strong><div id="distanceOverview"></div><p class="hint">ばらつきは標準偏差です。小さいほど距離が安定しています。フルショットと短いアプローチは別クラブ名（例：52° 10y）で登録すると平均が混ざりません。</p></div>
   </section>
 </div>
 
@@ -193,9 +225,11 @@
     <button data-view="practiceView" class="primary navBtn">記録</button>
     <button data-view="reportView" class="navBtn">レポート</button>
     <button data-view="historyView" class="navBtn">履歴</button>
+    <button data-view="distanceView" class="navBtn">飛距離</button>
   </div>
 </div>
 
+<script src="./analytics.js"></script>
 <script>
 const DEFAULT_CLUBS = ["AW","PW","7I","4UT","Driver"];
 let state = JSON.parse(localStorage.getItem("golfState") || "null") || {
@@ -208,6 +242,12 @@ if(!Array.isArray(clubs) || !clubs.length) clubs = DEFAULT_CLUBS.slice();
 if(!clubs.includes(state.selectedClub)) state.selectedClub = clubs[0];
 
 let history = JSON.parse(localStorage.getItem("golfHistory") || "[]");
+if(!state.sessionId) state.sessionId=newId();
+state.shots.forEach((shot,i)=>{if(!shot.id)shot.id=`${state.sessionId}-${i}`;});
+let distanceType=localStorage.getItem("golfDistanceType")||"total";
+if(!["total","carry"].includes(distanceType))distanceType="total";
+let distanceDraft=100;
+let trendClub=state.selectedClub;
 
 function save(){
   localStorage.setItem("golfState", JSON.stringify(state));
@@ -220,7 +260,7 @@ function renderTabs(){
   clubs.forEach(c=>{
     const b=document.createElement("button"); b.textContent=c;
     if(c===state.selectedClub)b.classList.add("active");
-    b.onclick=()=>{state.selectedClub=c;save();renderTabs();renderSelectedClub();}
+    b.onclick=()=>{state.selectedClub=c;save();renderTabs();renderSelectedClub();resetDistanceDraft();}
     el.appendChild(b);
   });
 }
@@ -228,8 +268,9 @@ function renderTabs(){
 function addShot(dir, contact, special){
   if(!state.selectedClub){ alert("クラブを1つ追加してください"); return; }
   state.shots.push({
-    ts:Date.now(), club:state.selectedClub,
-    dir:dir||"", contact:contact||"", special:special||""
+    id:newId(),ts:Date.now(), club:state.selectedClub,
+    dir:dir||"", contact:contact||"", special:special||"",
+    distance:document.getElementById("distanceUnknown").checked?null:distanceDraft,distanceType
   });
   save(); renderAll();
 }
@@ -241,8 +282,8 @@ document.querySelectorAll("[data-special]").forEach(b=>{
   b.onclick=()=>addShot("","",b.dataset.special);
 });
 
-function clubStats(club){
-  const s=state.shots.filter(x=>x.club===club);
+function clubStats(club,shots=state.shots){
+  const s=shots.filter(x=>x.club===club);
   const n=s.length;
   const good=s.filter(x=>x.contact==="良").length;
   const center=s.filter(x=>x.dir==="中央").length;
@@ -266,21 +307,22 @@ function renderSelectedClub(){
   document.getElementById("selectedClubCount").textContent=state.selectedClub?clubStats(state.selectedClub).n:0;
 }
 
-function renderStats(){
-  const el=document.getElementById("stats"); el.innerHTML="";
-  const displayClubs=getAllUsedClubs();
+function renderStats(el=document.getElementById("stats"),shots=state.shots,displayClubs=getAllUsedClubs()){
+  el.innerHTML="";
   if(!displayClubs.length){
     el.innerHTML='<div class="muted" style="padding:12px 0">クラブを追加してください</div>';
     return;
   }
   displayClubs.forEach(c=>{
-    const s=clubStats(c);
+    const s=clubStats(c,shots);
     const d=document.createElement("div"); d.className="stat";
     d.innerHTML=`
       <div><strong>${escapeHtml(c)}</strong></div><div class="stat-count">${s.n}<small> 球</small></div>
       <div class="muted">中央率 / 良い当たり率</div><div>${pct(s.center,s.n)}% / ${pct(s.good,s.n)}%</div>
       <div class="muted">左 ${s.left}・右 ${s.right}・トップ ${s.top}・ダフリ ${s.fat}・シャンク ${s.shank}</div><div></div>`;
-    el.appendChild(d);
+    const distances=document.createElement("div");distances.className="hint";distances.style.gridColumn="1 / -1";
+    distances.textContent=distanceSummary(c,shots);
+    d.appendChild(distances);el.appendChild(d);
   });
 }
 
@@ -290,7 +332,7 @@ function renderProgress(){
   document.getElementById("progressBar").style.width=Math.min(100,n/state.target*100)+"%";
   const last=state.shots[state.shots.length-1];
   document.getElementById("lastShot").textContent=last
-    ? `直前：${last.club} ${last.special || (last.dir+"・"+last.contact)}`
+    ? `直前：${last.club} ${last.special || (last.dir+"・"+last.contact)}${validDistance(last)?` / ${last.distance}yd（${typeLabel(last.distanceType)}）`:" / 距離不明"}`
     : "まだ記録はありません";
   document.getElementById("targetInput").value=state.target;
 }
@@ -306,6 +348,7 @@ function buildReport(){
     out+=`中央 ${s.center} / 左 ${s.left} / 右 ${s.right}\n`;
     out+=`良い当たり ${s.good}/${s.n} (${pct(s.good,s.n)}%)\n`;
     if(s.top||s.fat||s.shank) out+=`トップ ${s.top} / ダフリ ${s.fat} / シャンク ${s.shank}\n`;
+    out+=distanceSummary(c,state.shots)+"\n";
     out+="\n";
   });
   out+=`感覚メモ\n${state.memo || "なし"}\n\n`;
@@ -316,14 +359,7 @@ function buildReport(){
 function renderReport(){document.getElementById("reportText").textContent=buildReport();}
 
 function renderHistory(){
-  const el=document.getElementById("historyList"); el.innerHTML="";
-  if(!history.length){el.innerHTML='<div class="muted" style="padding:12px 0">保存済みの練習はありません</div>';return}
-  [...history].reverse().forEach(item=>{
-    const d=document.createElement("div"); d.className="history-item";
-    d.innerHTML=`<strong>${escapeHtml(item.date)}</strong> <span class="pill">${item.total}球</span>
-      <div class="muted" style="margin-top:4px">${escapeHtml(item.memo || "メモなし")}</div>`;
-    el.appendChild(d);
-  });
+  renderHistoryDetails();
 }
 
 function renderClubManager(){
@@ -384,6 +420,7 @@ function escapeHtml(s){
 
 function renderAll(){
   renderTabs(); renderSelectedClub(); renderProgress(); renderStats(); renderReport(); renderHistory(); renderClubManager();
+  resetDistanceDraft();renderDistancePage();
   document.getElementById("memo").value=state.memo||"";
 }
 
@@ -403,7 +440,7 @@ document.getElementById("newClubInput").addEventListener("keydown",e=>{if(e.key=
 
 document.getElementById("undoBtn").onclick=()=>{state.shots.pop();save();renderAll();}
 document.getElementById("resetTodayBtn").onclick=()=>{
-  if(confirm("今日の記録をリセットしますか？")){state.shots=[];state.memo="";save();renderAll();}
+  if(confirm("現在の記録をリセットしますか？未保存分は消えます。保存済み履歴は残ります。")){state.shots=[];state.memo="";state.sessionId=newId();save();renderAll();}
 };
 document.getElementById("refreshReportBtn").onclick=renderReport;
 document.getElementById("copyBtn").onclick=async()=>{
@@ -415,33 +452,29 @@ document.getElementById("shareBtn").onclick=async()=>{
   if(navigator.share){await navigator.share({title:"ゴルフ練習記録",text});}
   else{await navigator.clipboard.writeText(text);alert("共有機能がないためコピーしました");}
 };
-document.getElementById("saveSessionBtn").onclick=()=>{
-  if(!state.shots.length){alert("記録がありません");return}
-  history.push({
-    date:new Date().toLocaleString("ja-JP"),
-    total:state.shots.length,target:state.target,memo:state.memo,report:buildReport()
-  });
-  saveHistory(); alert("練習履歴に保存しました"); renderHistory();
-};
+document.getElementById("saveSessionBtn").onclick=saveSession;
+document.getElementById("savePracticeBtn").onclick=saveSession;
 document.getElementById("clearHistoryBtn").onclick=()=>{
-  if(confirm("すべての履歴を削除しますか？")){history=[];saveHistory();renderHistory();}
+  if(confirm("すべての履歴を削除しますか？飛距離の推移からも消えます。先にバックアップをおすすめします。")){history=[];saveHistory();renderAll();}
 };
 
 document.querySelectorAll(".navBtn").forEach(btn=>{
   btn.onclick=()=>{
-    ["practiceView","reportView","historyView"].forEach(id=>document.getElementById(id).classList.add("hidden"));
+    ["practiceView","reportView","historyView","distanceView"].forEach(id=>document.getElementById(id).classList.add("hidden"));
     document.getElementById(btn.dataset.view).classList.remove("hidden");
     document.querySelectorAll(".navBtn").forEach(x=>x.classList.remove("primary"));
     btn.classList.add("primary");
     if(btn.dataset.view==="reportView")renderReport();
     if(btn.dataset.view==="historyView")renderHistory();
+    if(btn.dataset.view==="distanceView")renderDistancePage();
+    window.scrollTo(0,0);
   };
 });
 
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js"));
 }
-renderAll();
+setupDistanceControls();save();renderAll();
 </script>
 </body>
 </html>
