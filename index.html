@@ -25,7 +25,10 @@
     .between{justify-content:space-between}
     button,input,textarea{font:inherit}
     button{border:0;border-radius:12px;padding:12px 14px;background:#e5e7eb;color:#111827;font-weight:700;touch-action:manipulation}
-    #distanceMinus,#distancePlus{min-width:44px;min-height:44px;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+    .distance-stepper{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    #distanceMinus,#distancePlus{min-width:0;min-height:64px;padding:14px;font-size:26px;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+    .distance-secondary{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:24px;padding-top:12px;border-top:1px solid var(--line)}
+    #distanceAverage{min-height:44px;background:#f3f4f6;color:#4b5563}
     button.primary{background:var(--accent);color:#fff}
     button.danger{background:#fee2e2;color:#991b1b}
     button.small{padding:8px 10px;font-size:13px}
@@ -131,7 +134,8 @@
         <input id="distanceSlider" type="range" min="0" max="300" step="1" value="100" list="distanceTicks" aria-label="飛距離（ヤード）" />
         <datalist id="distanceTicks"><option value="0"></option><option value="50"></option><option value="100"></option><option value="150"></option><option value="200"></option><option value="250"></option><option value="300"></option></datalist>
         <div class="range-ticks" id="distanceScale" aria-hidden="true"></div>
-        <div class="row between"><div class="row"><button class="small" id="distanceMinus" aria-label="飛距離を1ヤード減らす">−1</button><button class="small" id="distancePlus" aria-label="飛距離を1ヤード増やす">＋1</button><button class="small" id="distanceAverage">平均に戻す</button></div><label class="hint"><input id="distanceUnknown" type="checkbox" checked /> 距離不明</label></div>
+        <div class="distance-stepper" role="group" aria-label="飛距離を1ヤードずつ調整"><button id="distanceMinus" aria-label="飛距離を1ヤード減らす">−1</button><button id="distancePlus" aria-label="飛距離を1ヤード増やす">＋1</button></div>
+        <div class="distance-secondary"><button class="small" id="distanceAverage">平均に戻す</button><label class="hint"><input id="distanceUnknown" type="checkbox" checked /> 距離不明</label></div>
         <div id="distanceBaseline" class="hint" aria-live="polite"></div>
       </div>
       <div class="shot-grid" aria-label="ショットの記録">

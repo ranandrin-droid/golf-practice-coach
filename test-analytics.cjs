@@ -97,5 +97,6 @@ run('setClubDistanceRange("PW",100,120);');
 assert.equal(run('state.shots[0].distance'),300);
 run('createEditedHistory(existing,form);');
 run('form.shots[0].distance=99;');assert.throws(()=>run('createEditedHistory(existing,form)'),/100〜120/);
-assert.ok(html.includes('touch-action:manipulation'));assert.ok(html.includes('min-width:44px;min-height:44px'));
+assert.ok(html.includes('touch-action:manipulation'));assert.ok(html.includes('min-height:64px'));
+assert.ok(html.includes('class="distance-stepper"'));assert.ok(html.includes('class="distance-secondary"'));assert.ok(html.includes('margin-top:24px'));
 console.log('PASS: club lower bounds, both-bound validation/clamping, persistence, adaptive ticks, old-record preservation, tap-zoom suppression CSS');

@@ -1,4 +1,9 @@
-# Golf Practice Coach PWA v8
+# Golf Practice Coach PWA v9
+
+## v9 changes
+- 飛距離の−1／＋1ボタンを横幅いっぱいの2列・高さ64px・文字26pxに拡大
+- 平均に戻すを別行へ移動し、24pxの余白と区切り線で誤タップを抑制
+- iOS連打時のダブルタップ拡大抑制を維持。記録データ・計算処理の変更なし
 
 ## v8 changes
 - クラブ別下限を追加（0〜299yd、下限＜上限）。未設定は0yd
