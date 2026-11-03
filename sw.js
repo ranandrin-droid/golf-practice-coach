@@ -1,4 +1,4 @@
-const CACHE="golf-practice-coach-v9";
+const CACHE="golf-practice-coach-v10";
 const ASSETS=["./","./index.html","./analytics.js?v=8","./history-editor.js?v=8","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
 self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",e=>e.waitUntil(
