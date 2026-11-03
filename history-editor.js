@@ -8,7 +8,7 @@ function historyReport(item){
   let text=`${item.date} ゴルフ練習\n総球数 ${item.total}球 / 目標 ${item.target}球\n\n`;
   [...new Set(item.shots.map(s=>s.club))].forEach(c=>{
     const s=clubStats(c,item.shots);
-    text+=`${c} ${s.n}球\n中央 ${s.center} / 左 ${s.left} / 右 ${s.right}\n良い当たり ${s.good}/${s.n} (${pct(s.good,s.n)}%)\nトップ ${s.top} / ダフリ ${s.fat} / シャンク ${s.shank}\n${distanceSummary(c,item.shots)}\n\n`;
+    text+=`${c} ${s.n}球\n中央 ${s.center} / 左 ${s.left} / 右 ${s.right}\n芯に当たった ${s.good}/${s.n} (${pct(s.good,s.n)}%)\nトップ ${s.top} / ダフリ ${s.fat} / シャンク ${s.shank}\n${distanceSummary(c,item.shots)}\n\n`;
   });
   return text+`感覚メモ\n${item.memo||"なし"}`;
 }
@@ -70,7 +70,7 @@ function openHistoryEditor(item,details){
     const records=document.createElement("details");records.innerHTML='<summary>1球ごとの記録を編集</summary><p class="hint">除外にチェックすると、その球は保存後の集計から外れます。飛距離はクラブ別の下限〜上限で入力できます。既存の範囲外の距離は変更しない限り保持します。</p>';
     item.shots.forEach((shot,i)=>{
       const row=document.createElement("div");row.className="edit-shot";
-      row.innerHTML=`<strong>${i+1}球目</strong><div class="edit-fields"><label>クラブ<input class="edit-club" type="text" maxlength="60" value="${escapeHtml(shot.club)}" /></label><label>打球結果<select class="edit-result">${SHOT_RESULTS.map(result=>`<option value="${result}" ${result===(shot.special||`${shot.dir}・${shot.contact}`)?"selected":""}>${result}</option>`).join("")}</select></label><label>飛距離（yd）<input class="edit-distance" type="number" min="0" max="300" step="1" value="${validDistance(shot)?shot.distance:""}" /></label><label>距離種別<select class="edit-type"><option value="total" ${shot.distanceType!=="carry"?"selected":""}>ラン込み</option><option value="carry" ${shot.distanceType==="carry"?"selected":""}>キャリー</option></select></label></div><div class="row"><label><input class="edit-unknown" type="checkbox" ${!validDistance(shot)?"checked":""} /> 距離不明</label><label><input class="edit-remove" type="checkbox" /> この球を除外</label></div>`;
+      row.innerHTML=`<strong>${i+1}球目</strong><div class="edit-fields"><label>クラブ<input class="edit-club" type="text" maxlength="60" value="${escapeHtml(shot.club)}" /></label><label>打球結果<select class="edit-result">${SHOT_RESULTS.map(result=>`<option value="${result}" ${result===(shot.special||`${shot.dir}・${shot.contact}`)?"selected":""}>${result.split("・").map((value,index)=>index===0?({左:"狙いより左",中央:"狙いどおり",右:"狙いより右"}[value]||value):({良:"芯に当たった",普通:"少し芯を外した",悪:"大きく当たり損ねた"}[value]||value)).join("・")}</option>`).join("")}</select></label><label>飛距離（yd）<input class="edit-distance" type="number" min="0" max="300" step="1" value="${validDistance(shot)?shot.distance:""}" /></label><label>距離種別<select class="edit-type"><option value="total" ${shot.distanceType!=="carry"?"selected":""}>ラン込み</option><option value="carry" ${shot.distanceType==="carry"?"selected":""}>キャリー</option></select></label></div><div class="row"><label><input class="edit-unknown" type="checkbox" ${!validDistance(shot)?"checked":""} /> 距離不明</label><label><input class="edit-remove" type="checkbox" /> この球を除外</label></div>`;
       const input=row.querySelector(".edit-distance"),unknown=row.querySelector(".edit-unknown");
       const clubInput=row.querySelector(".edit-club");const updateMax=()=>{input.max=clubDistanceLimit(clubInput.value.trim());input.min=clubDistanceMinimum(clubInput.value.trim());};updateMax();clubInput.oninput=updateMax;
       input.oninput=()=>{unknown.checked=input.value.trim()==="";};records.appendChild(row);
