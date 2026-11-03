@@ -144,7 +144,7 @@ function renderDistancePage(){
   document.getElementById("distanceMetrics").innerHTML=`<div class="metrics"><div class="metric">直近300球の平均<strong>${fmt(latest.avg)} <small>yd</small></strong><span class="hint">計算対象 ${latest.n}球</span></div><div class="metric">全記録の最大<strong>${lifetime.max===null?"—":lifetime.max} <small>yd</small></strong><span class="hint">距離記録 ${lifetime.n}球</span></div><div class="metric">直近300球の最大<strong>${latest.max===null?"—":latest.max} <small>yd</small></strong></div><div class="metric">距離のばらつき<strong>±${fmt(latest.sd)} <small>yd</small></strong><span class="hint">標準偏差・ミス含む</span></div></div>`;
   const chart=document.getElementById("distanceChart");
   if(!points.length)chart.innerHTML='<p class="muted">このクラブ・距離種別の飛距離記録がまだありません。記録画面のスライダーを調整して、打球結果をタップしてください。</p>';
-  else chart.innerHTML=trendSvg(points,`${trendClub} ${typeLabel(type)}の直近300球平均の推移`);
+  else chart.innerHTML=trendSvg(points,`${trendClub} ${typeLabel(type)}の直近300球平均・当日最大の推移`);
   document.getElementById("distanceTable").innerHTML=points.length?`<table><thead><tr><th>日付</th><th>300球平均</th><th>対象球数</th><th>当日平均</th><th>当日最大</th></tr></thead><tbody>${[...points].reverse().map(p=>`<tr><td>${p.date}</td><td>${fmt(p.avg)}yd</td><td>${p.n}</td><td>${fmt(p.dailyAvg)}yd</td><td>${p.dailyMax===null?"—":p.dailyMax}yd</td></tr>`).join("")}</tbody></table>`:'<p class="hint">データなし</p>';
   const overview=document.getElementById("distanceOverview");overview.innerHTML="";
   names.forEach(c=>{
@@ -153,8 +153,8 @@ function renderDistancePage(){
   });
 }
 function trendSvg(points,label){
-  const w=600,h=270,l=54,r=20,t=22,b=42;
-  const values=points.map(p=>p.avg),low=Math.max(0,Math.floor((Math.min(...values)-10)/10)*10),high=Math.max(low+20,Math.ceil((Math.max(...values)+10)/10)*10);
+  const w=600,h=300,l=54,r=20,t=22,b=72;
+  const values=points.flatMap(p=>[p.avg,p.dailyMax]).filter(v=>v!==null),low=Math.max(0,Math.floor((Math.min(...values)-10)/10)*10),high=Math.max(low+20,Math.ceil((Math.max(...values)+10)/10)*10);
   const first=points[0].ts,last=points[points.length-1].ts;
   const x=p=>first===last?(l+w-r)/2:l+(p.ts-first)/(last-first)*(w-l-r);
   const y=v=>h-b-(v-low)/(high-low)*(h-t-b);
@@ -162,6 +162,22 @@ function trendSvg(points,label){
   for(let i=0;i<=4;i++){const v=low+(high-low)*i/4;svg+=`<line x1="${l}" y1="${y(v)}" x2="${w-r}" y2="${y(v)}" stroke="#e5e7eb"/><text x="${l-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="#6b7280">${Math.round(v)}</text>`;}
   svg+=`<text x="${l}" y="14" font-size="12" fill="#6b7280">yd</text><polyline fill="none" stroke="#2563eb" stroke-width="3" points="${points.map(p=>`${x(p)},${y(p.avg)}`).join(" ")}"/>`;
   points.forEach(p=>{svg+=`<circle cx="${x(p)}" cy="${y(p.avg)}" r="4" fill="#2563eb"><title>${p.date}：${fmt(p.avg)}yd（${p.n}球）</title></circle>`;});
+  let maximumSegment=[];
+  const maximumSegments=[];
+  points.forEach(p=>{
+    if(p.dailyMax===null){
+      if(maximumSegment.length)maximumSegments.push(maximumSegment);
+      maximumSegment=[];
+    }else maximumSegment.push(p);
+  });
+  if(maximumSegment.length)maximumSegments.push(maximumSegment);
+  maximumSegments.forEach(segment=>{
+    svg+=`<polyline fill="none" stroke="#c2410c" stroke-width="3" stroke-dasharray="7 4" points="${segment.map(p=>`${x(p)},${y(p.dailyMax)}`).join(" ")}"/>`;
+    segment.forEach(p=>{
+      svg+=`<rect x="${x(p)-4}" y="${y(p.dailyMax)-4}" width="8" height="8" fill="#c2410c"><title>${p.date}：当日最大 ${p.dailyMax}yd（${p.dailyN}球）</title></rect>`;
+    });
+  });
+  svg+=`<line x1="${l}" y1="${h-42}" x2="${l+24}" y2="${h-42}" stroke="#2563eb" stroke-width="3"/><text x="${l+30}" y="${h-38}" font-size="13" fill="#374151">直近300球平均</text><line x1="${l+200}" y1="${h-42}" x2="${l+224}" y2="${h-42}" stroke="#c2410c" stroke-width="3" stroke-dasharray="7 4"/><text x="${l+230}" y="${h-38}" font-size="13" fill="#374151">当日最大</text>`;
   svg+=`<text x="${l}" y="${h-12}" font-size="12" fill="#6b7280">${points[0].date}</text><text x="${w-r}" y="${h-12}" text-anchor="end" font-size="12" fill="#6b7280">${points[points.length-1].date}</text></svg>`;
   return svg;
 }
