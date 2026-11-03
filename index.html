@@ -140,17 +140,17 @@
         <div class="distance-secondary"><button class="small" id="distanceAverage">平均に戻す</button><label class="hint"><input id="distanceUnknown" type="checkbox" checked /> 距離不明</label></div>
         <div id="distanceBaseline" class="hint" aria-live="polite"></div>
       </div>
-      <p class="hint">当たりは打感で、方向は自分から目標を見たときの打球の行き先で選びます。トップ・ダフリ・シャンクは専用ボタンで記録してください。</p>
+      <p class="hint">方向は狙いに対して左・中央・右。当たりは「芯＝芯に当たった」「少しズレ＝少し芯を外した」「ミス＝大きく当たり損ねた」。トップ・ダフリ・シャンクは専用ボタンへ。</p>
       <div class="shot-grid" aria-label="ショットの記録">
-        <button class="good" data-dir="左" data-contact="良"><span>狙いより左</span><small>芯に当たった</small></button>
-        <button class="good" data-dir="中央" data-contact="良"><span>狙いどおり</span><small>芯に当たった</small></button>
-        <button class="good" data-dir="右" data-contact="良"><span>狙いより右</span><small>芯に当たった</small></button>
-        <button class="mid" data-dir="左" data-contact="普通"><span>狙いより左</span><small>少し芯を外した</small></button>
-        <button class="mid" data-dir="中央" data-contact="普通"><span>狙いどおり</span><small>少し芯を外した</small></button>
-        <button class="mid" data-dir="右" data-contact="普通"><span>狙いより右</span><small>少し芯を外した</small></button>
-        <button class="bad" data-dir="左" data-contact="悪"><span>狙いより左</span><small>大きく当たり損ねた</small></button>
-        <button class="bad" data-dir="中央" data-contact="悪"><span>狙いどおり</span><small>大きく当たり損ねた</small></button>
-        <button class="bad" data-dir="右" data-contact="悪"><span>狙いより右</span><small>大きく当たり損ねた</small></button>
+        <button class="good" data-dir="左" data-contact="良"><span>左</span><small>芯</small></button>
+        <button class="good" data-dir="中央" data-contact="良"><span>中央</span><small>芯</small></button>
+        <button class="good" data-dir="右" data-contact="良"><span>右</span><small>芯</small></button>
+        <button class="mid" data-dir="左" data-contact="普通"><span>左</span><small>少しズレ</small></button>
+        <button class="mid" data-dir="中央" data-contact="普通"><span>中央</span><small>少しズレ</small></button>
+        <button class="mid" data-dir="右" data-contact="普通"><span>右</span><small>少しズレ</small></button>
+        <button class="bad" data-dir="左" data-contact="悪"><span>左</span><small>ミス</small></button>
+        <button class="bad" data-dir="中央" data-contact="悪"><span>中央</span><small>ミス</small></button>
+        <button class="bad" data-dir="右" data-contact="悪"><span>右</span><small>ミス</small></button>
         <button class="danger" data-special="トップ">トップ</button>
         <button class="danger" data-special="ダフリ">ダフリ</button>
         <button class="danger" data-special="シャンク">シャンク</button>
