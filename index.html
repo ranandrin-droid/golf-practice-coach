@@ -96,6 +96,19 @@
     details>summary{cursor:pointer;padding:10px 0;font-weight:700}
     .chart{width:100%;display:block;height:auto}
     .table-wrap{overflow-x:auto} table{width:100%;border-collapse:collapse;font-size:13px} th,td{padding:8px 4px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+    @media (max-width:680px){
+      .app{padding-top:calc(env(safe-area-inset-top) + 4px)}
+      h1{font-size:20px;margin-top:2px}
+      .sub{margin-bottom:6px}
+      #practiceView .card{padding:10px;margin:8px 0}
+      #practiceView .recording-head{padding:6px 10px;margin-top:6px}
+      #practiceView .recording-club,#practiceView .recording-count{font-size:28px}
+      #practiceView .distance-box{padding:8px;margin-top:6px}
+      #practiceView .distance-secondary{margin-top:16px;padding-top:6px}
+      #practiceView .shot-grid{gap:6px;margin-top:6px}
+      #practiceView .shot-grid button{min-height:48px;padding:5px 3px;font-size:16px}
+      #practiceView .shot-grid button small{margin-top:2px}
+    }
   </style>
 </head>
 <body>
@@ -140,7 +153,6 @@
         <div class="distance-secondary"><button class="small" id="distanceAverage">平均に戻す</button><label class="hint"><input id="distanceUnknown" type="checkbox" checked /> 距離不明</label></div>
         <div id="distanceBaseline" class="hint" aria-live="polite"></div>
       </div>
-      <p class="hint">方向は狙いに対して左・中央・右。当たりは「芯＝芯に当たった」「少しズレ＝少し芯を外した」「ミス＝大きく当たり損ねた」。トップ・ダフリ・シャンクは専用ボタンへ。</p>
       <div class="shot-grid" aria-label="ショットの記録">
         <button class="good" data-dir="左" data-contact="良"><span>左</span><small>芯</small></button>
         <button class="good" data-dir="中央" data-contact="良"><span>中央</span><small>芯</small></button>
